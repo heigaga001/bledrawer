@@ -76,6 +76,17 @@
             android:text="上翻页"
             android:layout_weight="1.0"
             />
+        <TextView
+            android:id="@+id/clear_all"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginLeft="10dp"
+            android:background="@color/white"
+            android:padding="10dp"
+            android:gravity="center"
+            android:text="清屏"
+            android:layout_weight="1.0"
+            />
     </LinearLayout>
     <LinearLayout
         android:layout_width="match_parent"

@@ -68,14 +68,11 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothDevice mDevice = null;
     private BluetoothAdapter mBtAdapter = null;
 
+    private int write = 0;
+
     private int[] colors = new int[]{
             Color.WHITE,
-            Color.BLUE,
-            Color.RED,
-            Color.YELLOW,
-            Color.GREEN,
-            Color.CYAN,
-            Color.MAGENTA
+            Color.GREEN
     };
     private int [] colorIndex = new int[]{
             0,
@@ -100,7 +97,15 @@ public class MainActivity extends AppCompatActivity {
         connect = findViewById(R.id.btn_select);
         connect.setTag(new Integer(1));
         receiveView = findViewById(R.id.receivemsg);
+
         receiveView.setText(msg);
+        findViewById(R.id.clear_all).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                myView.clearAll();
+            }
+        });
+        receiveView.setVisibility(View.GONE);
         pressView = findViewById(R.id.value);
         batteryView = findViewById(R.id.battery);
         connect.setOnClickListener(new View.OnClickListener() {
@@ -247,29 +252,29 @@ public class MainActivity extends AppCompatActivity {
 
                 final byte[] txValue = intent.getByteArrayExtra(UartService.EXTRA_DATA);
                 final byte[] battery =  intent.getByteArrayExtra(UartService.EXTRA_DATA_BATTERY);
-                if(txValue!=null){
-                    String receive = "";
-                    for(int i=0;i<txValue.length;i++){
-                        int v = txValue[i] & 0xFF;
-                        String hv = Integer.toHexString(v);
-                        receive = receive+hv;
-                        if(i!=txValue.length-1){
-                            receive = receive+"-";
-                        }
-                    }
-                    msgs.add(receive);
-                    if(msgs.size()>8){
-                        msgs.remove(0);
-                    }
-                    msg = "";
-                    for(int i=0;i<msgs.size();i++){
-                        msg = msg+msgs.get(i);
-                        msg = msg+"   -->>   ";
-                    }
-//                    msg = msg+"\n"+receive;
-
-//                    Toast.makeText(getApplicationContext(),"",Toast.LENGTH_LONG).show();
-                }
+//                if(txValue!=null){
+//                    String receive = "";
+//                    for(int i=0;i<txValue.length;i++){
+//                        int v = txValue[i] & 0xFF;
+//                        String hv = Integer.toHexString(v);
+//                        receive = receive+hv;
+//                        if(i!=txValue.length-1){
+//                            receive = receive+"-";
+//                        }
+//                    }
+//                    msgs.add(receive);
+//                    if(msgs.size()>2){
+//                        msgs.remove(0);
+//                    }
+//                    msg = "";
+//                    for(int i=0;i<msgs.size();i++){
+//                        msg = msg+msgs.get(i);
+//                        msg = msg+"   -->>   ";
+//                    }
+////                    msg = msg+"\n"+receive;
+//
+////                    Toast.makeText(getApplicationContext(),"",Toast.LENGTH_LONG).show();
+//                }
                 runOnUiThread(new Runnable() {
                     public void run() {
                         receiveView.setText(msg);
@@ -282,8 +287,7 @@ public class MainActivity extends AppCompatActivity {
                           batteryView.setText("电量："+batteryValue+"%");
                           return;
                       }
-                      txValue[0] = 0x04;
-                      txValue[1] = 0x11;
+
                       if(txValue.length >=3){
                           byte cValue = txValue[2];
                           int up = get(cValue,0);
@@ -291,8 +295,8 @@ public class MainActivity extends AppCompatActivity {
                           int right = get(cValue,2);
                           int clear = get(cValue,3);
                           int colorSelect = get(cValue,4);
-                          int writeState = txValue[0]>>7;
-                          int press = ((int)txValue[0]<<8)&txValue[1]&0xfff;
+                          int writeState = ((txValue[0] & 0xFF)>>7);
+                          int press = ((((txValue[0] & 0xFF)<<9) & 0xFFFF)>>1) + (txValue[1] & 0xFF);
                           colorIndex[0] = colorIndex[0]+up;
                           colorIndex[1] = colorIndex[1]+down;
                           colorIndex[2] = colorIndex[2]+right;
@@ -304,6 +308,15 @@ public class MainActivity extends AppCompatActivity {
                           rubber.setBackgroundColor(colors[colorIndex[3]%colors.length]);
                           colorView.setBackgroundColor(colors[colorIndex[4]%colors.length]);
                           pressView.setText("当前压感值："+press);
+                          int batteryValue  = txValue[3];
+                          write = writeState;
+                          batteryView.setText("电量："+batteryValue+"%");
+                          if(colorIndex[3]%colors.length == 0){
+                              myView.setMode(Pen);
+                          }else{
+                              myView.setMode(Eraser);
+                          }
+
 //                            upView.setBackgroundResource(colorIndex[0] == 1?R.drawable.shape_label_red:R.drawable.shape_label_orange);
 //                          right_action.setBackgroundResource(colorIndex[2] == 1?R.drawable.shape_label_red:R.drawable.shape_label_orange);
 //                           rubber.setBackgroundResource(colorIndex[3] == 1?R.drawable.shape_label_red:R.drawable.shape_label_orange);
@@ -311,7 +324,7 @@ public class MainActivity extends AppCompatActivity {
 //                          downView.setBackgroundResource(colorIndex[1] == 1?R.drawable.shape_label_red:R.drawable.shape_label_orange);
 //                          colorView.setBackgroundResource(colorIndex[4] == 1?R.drawable.shape_label_red:R.drawable.shape_label_orange);
 
-                          Log.d(TAG,"up:"+up+",down:"+down+",right:"+right+",clear:"+clear+"color:"+colorSelect+",write:"+writeState+",press:"+press);
+                          Log.d(TAG,"up:"+up+",down:"+down+",right:"+right+",clear:"+clear+"color:"+colorSelect+",write:"+writeState+",press:"+press+",barttery:");
                       }
 
                     }
@@ -333,13 +346,12 @@ public class MainActivity extends AppCompatActivity {
                     msg = msg+"   -->>   ";
                 }
 //                    msg = msg+"\n"+receive;
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        showMessage("DEVICE_SUPPORT_UART");
-                        receiveView.setText(msg);
-                    }
-                });
+//                runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        receiveView.setText(msg);
+//                    }
+//                });
 
             }
 
@@ -495,6 +507,14 @@ public class MainActivity extends AppCompatActivity {
             mCanvas = new Canvas(mBitmap);
         }
 
+        public void clearAll(){
+            mPath = new Path();
+
+            mBitmap = Bitmap.createBitmap(SCREEN_W, SCREEN_H, Bitmap.Config.ARGB_8888);
+            mCanvas = new Canvas(mBitmap);
+            postInvalidate();
+        }
+
         @Override
         protected void onDraw(Canvas canvas) {
             if (mBitmap != null) {
@@ -504,6 +524,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         private void touch_start(float x, float y) {
+
             mPath.reset();
             mPath.moveTo(x, y);
             mX = x;
@@ -520,6 +541,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         private void touch_move(float x, float y) {
+
             float dx = Math.abs(x - mX);
             float dy = Math.abs(y - mY);
             if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
@@ -537,6 +559,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         private void touch_up() {
+
             mPath.lineTo(mX, mY);
             if (mMode == Pen) {
                 mCanvas.drawPath(mPath, mPaint);
@@ -545,7 +568,7 @@ public class MainActivity extends AppCompatActivity {
                 mCanvas.drawPath(mPath, mEraserPaint);
             }
         }
-
+        private boolean startPaint = false;
         @Override
         public boolean onTouchEvent(MotionEvent event) {
             float x = event.getX();
@@ -553,16 +576,32 @@ public class MainActivity extends AppCompatActivity {
 
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
-                    touch_start(x, y);
-                    invalidate();
+                    if(write ==1){
+                        startPaint = true;
+                        touch_start(x, y);
+                        invalidate();
+                    }
+
                     break;
                 case MotionEvent.ACTION_MOVE:
-                    touch_move(x, y);
-                    invalidate();
+                    if(write == 1){
+                        if(startPaint){
+                            touch_move(x, y);
+                        }else{
+                            startPaint = true;
+                            touch_start(x, y);
+                        }
+                        invalidate();
+                    }
+
                     break;
                 case MotionEvent.ACTION_UP:
-                    touch_up();
-                    invalidate();
+                    startPaint = false;
+                    if(write == 1) {
+                        touch_up();
+                        invalidate();
+                    }
+
                     break;
             }
             return true;

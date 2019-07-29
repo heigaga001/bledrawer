@@ -411,12 +411,12 @@ public class UartService extends Service {
         Log.d(TAG, "write TXchar - status=" + status);
         if(status){
             broadcastUpdate(DEVICE_SUPPORT_UART);
-            new Handler().postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    getBattery();
-                }
-            },2000);
+//            new Handler().postDelayed(new Runnable() {
+//                @Override
+//                public void run() {
+//                    getBattery();
+//                }
+//            },2000);
         }
 //        descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
 //        status =  mBluetoothGatt.writeDescriptor(descriptor);
